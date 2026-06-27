@@ -156,4 +156,6 @@ class GazeMapper:
         gy = np.clip(gy_norm * globals.screen_height, 0, globals.screen_height)
 
         return float(gx), float(gy)
+    
 
+        

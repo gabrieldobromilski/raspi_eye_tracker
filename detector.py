@@ -2,8 +2,6 @@ import cv2
 import time
 import numpy as np
 from picamera2 import Picamera2
-from ultralytics import YOLO
-import onnxruntime as ort
 import mediapipe as mp
 import os
 import globals
@@ -97,12 +95,6 @@ class Detector:
                              dst=right_eye_frame, interpolation=cv2.INTER_LINEAR)
 
         return left_eye_frame, right_eye_frame
-
-
-    def detect_eyes_YOLO(self, frame):
-        #work in progress
-        return None
-
 
     def detect_eyes_mediapipe(self, gray_frame):
         """
@@ -413,10 +405,9 @@ class Detector:
         while True:
             print("\n=== Wybierz algorytm detekcji oczu ===")
             print("1. Haarcascade")
-            print("2. YOLO (ONNX Runtime)")
-            print("3. MediaPipe FaceMesh")
+            print("2. MediaPipe FaceMesh")
             print("--------------------------------------")
-            choice = input("Wybierz [1/2/3]: ").strip()
+            choice = input("Wybierz [1/2]: ").strip()
             match choice:
                 
                 case '1':
@@ -428,16 +419,6 @@ class Detector:
                     print("Klasyfikatory Haarcascade załadowane pomyślnie")
 
                 case '2':
-                    print("Ładowanie modelu YOLOv8n.onnx ...")
-                    try:
-                        self.yolo_session = ort.InferenceSession("yolov8n.onnx", providers=["CPUExecutionProvider"])
-                        self.input_name = self.yolo_session.get_inputs()[0].name
-                        print("Model YOLOv8n.onnx załadowany pomyślnie")
-                    except Exception as e:
-                        print(f"Błąd ładowania modelu YOLOv8n.onnx: {e}")
-                        self.yolo_session = None
-
-                case '3':
                     print("Inicjalizacja MediaPipe FaceMesh ...")                    
                     self.mp_face_mesh = mp.solutions.face_mesh
                     self.face_mesh = self.mp_face_mesh.FaceMesh(
@@ -480,10 +461,6 @@ class Detector:
                 left_eye, right_eye = self.detect_eyes_haarcascade(gray_frame, faces)                               
 
             case '2':
-                print("Work in progess")
-                return [], self.empty_eye_frame, self.empty_eye_frame, None, None
-
-            case '3':
                 left_eye, right_eye = self.detect_eyes_mediapipe(gray_frame)
                 faces = []                
 
