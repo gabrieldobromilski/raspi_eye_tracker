@@ -4,7 +4,7 @@
 const_draw_face_rectangles = False
 const_draw_eye_rectangles = False
 const_draw_info = True
-const_draw_even_more_info = False
+const_draw_even_more_info = True
 
 #EYE DIMENSIONS
 const_single_eye_window_dim = 200
@@ -30,8 +30,8 @@ const_ignore_bounds_y = 32
 const_image_skip_size = 4
 const_search_area = 15      
 const_internal_skip_size = 5
-const_glint_vector_length_limit_x = 44
-const_glint_vector_length_limit_y = 75
+const_glint_vector_length_limit_x = 40
+const_glint_vector_length_limit_y = 40
 
 #PUPIL DETECTION VALUES
 const_kernel_size = 5

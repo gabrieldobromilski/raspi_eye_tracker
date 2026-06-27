@@ -30,6 +30,16 @@ class GazeRenderer:
         self.button_radius = 100
         self.button_active = False
         self.button_pos = None
+        
+        self.precision_started = False
+        self.precision_initialized = False
+        self.precision_finished = False
+
+        self.precision_target = None
+        self.precision_radius = 50
+
+        self.precision_duration = globals.test_time
+        self.precision_start_time = None
 
     def _init_display(self):
         pygame.init()
@@ -217,6 +227,124 @@ class GazeRenderer:
 
         return None
     
+    def precision_test(self, gaze_available):
+        """
+        Test precyzji uruchamia się dopiero gdy system wykryje gaze point.
+        """
+    
+        if not gaze_available:
+            return None
+
+        if not self.precision_initialized:
+            margin = self.precision_radius + 10
+
+            self.precision_target = (
+                random.randint(margin, globals.screen_width - margin),
+                random.randint(margin, globals.screen_height - margin)
+            )
+
+            self.button_active = True
+            self.button_pos = self.precision_target
+            self.button_radius = self.precision_radius
+
+            self.precision_start_time = time.perf_counter()
+            self.precision_initialized = True
+            self.precision_started = True
+
+        elapsed = time.perf_counter() - self.precision_start_time
+
+        if elapsed >= self.precision_duration:
+            self.button_active = False
+            self.precision_finished = True
+            return self.precision_target
+
+        return None
+    
+    def save_gaze_points(self, left_gaze, right_gaze):
+        left_valid = (
+            left_gaze is not None
+            and left_gaze[0] is not None
+            and left_gaze[1] is not None
+        )
+
+        right_valid = (
+            right_gaze is not None
+            and right_gaze[0] is not None
+            and right_gaze[1] is not None
+        )
+
+        if left_valid and right_valid:
+            return (
+                (left_gaze[0] + right_gaze[0]) / 2,
+                (left_gaze[1] + right_gaze[1]) / 2,
+            )
+
+        if left_valid:
+            return left_gaze
+
+        if right_valid:
+            return right_gaze
+
+        return None
+    
+    def plot_precision_results(self, gaze_points, target_point, sampling_frequency, filename=None):
+
+        if len(gaze_points) == 0:
+            print("Brak danych do wizualizacji.")
+            return
+
+        
+        data = np.array(gaze_points)
+
+        x = data[:, 0]
+        y = data[:, 1]
+
+        plt.figure(figsize=(8, 8))
+
+        plt.scatter(x, y, c='red', s=10, label="Gaze points")
+
+        circle = plt.Circle(
+            target_point,
+            self.precision_radius,
+            fill=False,
+            color='blue',
+            linewidth=2,
+            label="Target area"
+        )
+
+        plt.gca().add_patch(circle)
+
+        plt.scatter(
+            target_point[0],
+            target_point[1],
+            c='blue',
+            s=50,
+            label="Target center"
+        )
+
+        plt.gca().set_aspect('equal', adjustable='box')
+
+        plt.xlim(0, globals.screen_width)
+        plt.ylim(0, globals.screen_height)
+        plt.gca().invert_yaxis()  
+
+        plt.title("Precision Test - Gaze Distribution")
+        plt.xlabel("X [px]")
+        plt.ylabel("Y [px]")
+        plt.legend()
+        plt.grid(True)
+        
+        plt.figtext(0.5, 0.01, f"Częstotliwość próbkowania: {sampling_frequency:.2f} Hz", ha="center", fontsize=10)
+
+        plt.tight_layout(rect=[0, 0.04, 1, 1])
+
+        if filename:
+            plt.savefig(filename)
+            print(f"Wykres zapisany: {filename}")
+        else:
+            plt.show()
+
+        plt.close()
     
     def plot_sequence_results(self, results, filename=None):
         times = np.array(results)
@@ -242,3 +370,40 @@ class GazeRenderer:
             plt.close()
         else:
             plt.show()
+            
+    def save_precision_results(self,gaze_points, target_point, sampling_frequency, filename="precision_results.txt"):
+
+        with open(filename, "w") as file:
+
+            file.write("===== TEST PRECYZJI =====\n\n")
+
+            file.write(
+                f"Punkt wzorcowy: "
+                f"({target_point[0]:.2f}, {target_point[1]:.2f})\n"
+            )
+
+            file.write(
+                f"Promień okręgu: {self.precision_radius} px\n"
+            )
+
+            file.write(
+                f"Częstotliwość próbkowania: "
+                f"{sampling_frequency:.2f} Hz\n"
+            )
+
+            file.write(
+                f"Liczba próbek: {len(gaze_points)}\n\n"
+            )
+
+            file.write("--------------------------------------------\n")
+            file.write("Nr\tX\tY\n")
+            file.write("--------------------------------------------\n")
+
+            for i, point in enumerate(gaze_points, start=1):
+                file.write(
+                    f"{i}\t"
+                    f"{point[0]:.2f}\t"
+                    f"{point[1]:.2f}\n"
+                )
+
+        print(f"Wyniki zapisano do: {filename}") 

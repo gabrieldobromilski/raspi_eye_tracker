@@ -60,6 +60,8 @@ if __name__ == "__main__":
                 right_mapper = GazeMapper("right")
                 right_mapper.load_calibration("calibration_data_right.npz")
                 
+                gaze_point_list = []
+                
                 renderer = GazeRenderer()                
                 os.system("clear")
                 while True:
@@ -68,12 +70,16 @@ if __name__ == "__main__":
                     
                     left_gaze = left_mapper.predict()
                     right_gaze = right_mapper.predict()
+                    point = renderer.save_gaze_points(left_gaze, right_gaze)
+                    
+                    if point is not None:
+                        gaze_point_list.append(point)                
                     
                     renderer.render(left_gaze=left_gaze if left_gaze != (None, None) else None,
                                     right_gaze=right_gaze if right_gaze != (None, None) else None,
                                     is_left_eye_closed=is_left_eye_closed,
-                                    is_right_eye_closed=is_right_eye_closed)                   
-                                              
+                                    is_right_eye_closed=is_right_eye_closed)
+                                                            
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
                 
@@ -135,7 +141,81 @@ if __name__ == "__main__":
                     for i, t in enumerate(results, start=1):
                         print(f"Czas dla koła {i}: {t:.3f} s")
                     renderer.plot_sequence_results(results, filename="result_chart.png")
+                    
+            case "5":
+                print("\nWybrano: TEST PRECYZJI\n")
+                time.sleep(1)
+
+                left_mapper = GazeMapper("left")
+                left_mapper.load_calibration("calibration_data_left.npz")
+
+                right_mapper = GazeMapper("right")
+                right_mapper.load_calibration("calibration_data_right.npz")
+
+                renderer = GazeRenderer()
+
+                gaze_point_list = []
+
+                while True:
+                    gray_frame, faces, pupils, eyes_with_ellipse, is_left_eye_closed, is_right_eye_closed = (
+                        det.get_features(algorithm_choice)
+                    )
+
+
+                    left_gaze = left_mapper.predict()
+                    right_gaze = right_mapper.predict()
+
+        
+                    point = renderer.save_gaze_points(left_gaze, right_gaze)
+                    if point is not None:
+                        gaze_point_list.append(point)
+
+                    renderer.render(
+                        left_gaze=left_gaze if left_gaze != (None, None) else None,
+                        right_gaze=right_gaze if right_gaze != (None, None) else None,
+                        is_left_eye_closed=is_left_eye_closed,
+                        is_right_eye_closed=is_right_eye_closed,
+                    )
+
+        
+                    gaze_available = (
+                        left_gaze != (None, None)
+                        or right_gaze != (None, None)
+                    )
+
+                    result = renderer.precision_test(gaze_available)
+
+                    if result is not None:
+                        duration = renderer.precision_duration
+
+                        fs = len(gaze_point_list) / duration if duration > 0 else 0
+
+                        print("Test zakończony.")
+                        print("Punkt referencyjny:", result)
+                        print("Liczba próbek:", len(gaze_point_list))
+                        print(f"Częstotliwość próbkowania: {fs:.2f} Hz")
+
+                        break
+
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
                 
+                renderer.plot_precision_results(
+                    gaze_points=gaze_point_list,
+                    target_point=result,
+                    sampling_frequency=fs,
+                    filename="precision_result.png"
+                    )
+
+                renderer.save_precision_results(
+                    gaze_points=gaze_point_list,
+                    target_point=result,
+                    sampling_frequency=fs,
+                    filename="precision_result.txt"
+                    )
+                
+                renderer.pygame_quit()
+            
             case _:            
                 print("Nieznana opcja")
                 time.sleep(1)        
